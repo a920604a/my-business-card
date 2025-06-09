@@ -9,9 +9,12 @@ import {
   Heading,
   useClipboard,
   VisuallyHidden,
+  Tooltip,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import QRCode from "react-qr-code";
+import * as htmlToImage from "html-to-image";
+import download from "downloadjs";
 
 const MotionBox = motion(Box);
 
@@ -20,18 +23,21 @@ const faceStyles = {
   width: "100%",
   height: "100%",
   borderRadius: "20px",
-  padding: "28px 32px",
+  padding: "32px 36px",
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
   boxSizing: "border-box",
   backfaceVisibility: "hidden",
+  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
 };
 
 export default function App() {
   const [data, setData] = useState(null);
   const [flipped, setFlipped] = useState(false);
+  const [shortUrl, setShortUrl] = useState("");
   const audioRef = useRef(null);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL || "/"}data.json`)
@@ -46,9 +52,91 @@ export default function App() {
     if (navigator.vibrate) navigator.vibrate(100);
   };
 
+const handleDownloadBothSides = async () => {
+  if (!cardRef.current) return;
+
+  const frontEl = cardRef.current.querySelector(".front");
+  const backEl = cardRef.current.querySelector(".back");
+  if (!frontEl || !backEl) {
+    alert("找不到正面或背面元素");
+    return;
+  }
+
+  try {
+    // 正面截圖
+    const frontDataUrl = await htmlToImage.toPng(frontEl, {
+      backgroundColor: null,
+      quality: 1,
+      pixelRatio: 2,
+    });
+
+    // 背面截圖前移除旋轉
+    const originalTransform = backEl.style.transform;
+    backEl.style.transform = "none";
+
+    const backDataUrl = await htmlToImage.toPng(backEl, {
+      backgroundColor: null,
+      quality: 1,
+      pixelRatio: 2,
+    });
+
+    backEl.style.transform = originalTransform;
+
+    const frontImg = new Image();
+    const backImg = new Image();
+
+    await Promise.all([
+      new Promise((res) => {
+        frontImg.onload = res;
+        frontImg.src = frontDataUrl;
+      }),
+      new Promise((res) => {
+        backImg.onload = res;
+        backImg.src = backDataUrl;
+      }),
+    ]);
+
+    // 合成上下排列
+    const canvas = document.createElement("canvas");
+    const width = Math.max(frontImg.width, backImg.width);
+    const height = frontImg.height + backImg.height;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("無法取得 Canvas 2D context");
+
+    ctx.fillStyle = "#f9f9fb"; // 淺灰背景，比純白更柔和
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.drawImage(frontImg, 0, 0);
+    // 這裡改成直接畫 backImg，移除水平翻轉
+    ctx.drawImage(backImg, 0, frontImg.height);
+
+    const combinedDataUrl = canvas.toDataURL("image/png");
+    download(combinedDataUrl, "resume-card-both-sides.png");
+  } catch (error) {
+    alert("下載圖片失敗：" + error);
+  }
+};
+
+
+  const handleGenerateShortUrl = async () => {
+    const longUrl = window.location.href;
+    try {
+      const res = await fetch(
+        `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`
+      );
+      const url = await res.text();
+      setShortUrl(url);
+    } catch {
+      alert("產生短網址失敗！");
+    }
+  };
+
   if (!data) {
     return (
-      <Text mt={20} textAlign="center" color="white">
+      <Text mt={20} textAlign="center" color="white" fontSize="xl">
         載入中...
       </Text>
     );
@@ -65,8 +153,10 @@ export default function App() {
         justify="center"
         userSelect="none"
         sx={{ WebkitTapHighlightColor: "transparent" }}
+        flexDirection="column"
+        px={4}
       >
-        <Box w="100vw" maxW="500px" px={4} sx={{ perspective: "1200px" }}>
+        <Box w="100%" maxW="500px" sx={{ perspective: "1200px" }} ref={cardRef}>
           <MotionBox
             onClick={handleFlip}
             role="button"
@@ -84,61 +174,101 @@ export default function App() {
               transformStyle: "preserve-3d",
               cursor: "pointer",
               borderRadius: "20px",
-              boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-              background: "linear-gradient(to right bottom, #4c57a9, #6a73d6)",
+              boxShadow:
+                "0 24px 48px rgba(0,0,0,0.4), 0 0 15px rgba(102, 126, 234, 0.5)",
+              background: "linear-gradient(135deg, #4c57a9, #6a73d6)",
             }}
           >
-            {/* Front */}
+            {/* 正面 */}
             <Box
+              className="front"
               sx={faceStyles}
-              bg="rgba(255, 255, 255, 0.18)"
-              boxShadow="inset 0 0 40px rgba(255,255,255,0.25)"
+              bg="rgba(255, 255, 255, 0.22)"
+              boxShadow="inset 0 0 40px rgba(255,255,255,0.3)"
               transform="rotateY(0deg)"
+              color="#1e1e2f"
             >
-              <Heading as="h1" size="xl" mb={3}>
+              <Heading as="h1" size="2xl" mb={3} fontWeight="bold" letterSpacing="wide" color="#2a2a70">
                 {data.name}
               </Heading>
-              <Heading as="h3" size="md" mb={1} fontWeight="600" color="#c0c7ff">
+              <Heading
+                as="h3"
+                size="md"
+                mb={2}
+                fontWeight="600"
+                color="#5f7cff"
+                letterSpacing="wider"
+                textTransform="uppercase"
+              >
                 {data.title}
               </Heading>
-              <Text fontSize="md" fontWeight="400" color="#aab2ff">
+              <Text fontSize="lg" fontWeight="500" color="#4a50ff" letterSpacing="wide">
                 {data.company}
-              </Text>
+              </Text> 
+
             </Box>
 
-            {/* Back */}
+            {/* 背面 */}
             <Box
+              className="back"
               sx={faceStyles}
-              bg="rgba(255, 255, 255, 0.15)"
-              boxShadow="inset 0 0 40px rgba(0,0,0,0.35)"
+              bg="rgba(30, 30, 47, 0.85)"
+              boxShadow="inset 0 0 50px rgba(0,0,0,0.45)"
               transform="rotateY(180deg)"
-              color="#eaeaff"
+              color="#d6d6ff"
               fontSize="16px"
               display="flex"
               justifyContent="space-between"
               flexDirection="column"
               overflowWrap="break-word"
+              letterSpacing="0.03em"
             >
               <Box display="flex" flexDirection="column" gap={4}>
-                <CopyButton label="複製電話" text={data.phone} icon="📞" />
-                <CopyButton label="複製 Email" text={data.email} icon="📧" />
+                <CopyButton label="電話" text={data.phone} icon="📞" />
+                <CopyButton label="Email" text={data.email} icon="📧" />
 
-                <Flex justify="center" gap={5}>
+                <Flex justify="center" gap={6} mt={2}>
                   <CustomLink href={data.linkedin} label="LinkedIn" />
                   <CustomLink href={data.github} label="GitHub" />
                 </Flex>
               </Box>
 
-              <Box mt={2} display="flex" flexDirection="column" alignItems="center" gap={2}>
-                <QRCode value={data.website} size={160} />
-                <Text fontSize="sm" color="#b0b6ffcc">
+              <Box mt={4} display="flex" flexDirection="column" alignItems="center" gap={3}>
+                <Box
+                  p={3}
+                  bg="rgba(255,255,255,0.1)"
+                  borderRadius="md"
+                  boxShadow="0 0 15px rgba(102, 126, 234, 0.6)"
+                >
+                  <QRCode value={data.website} size={160} bgColor="transparent" fgColor="#aabbff" />
+                </Box>
+                <Text fontSize="sm" color="#b0b6ffcc" letterSpacing="wide">
                   掃描訪問我的網站
                 </Text>
               </Box>
             </Box>
           </MotionBox>
         </Box>
-        <audio ref={audioRef} src="/flip-sound.mp3" preload="auto" />
+
+        {/* 分享區域 */}
+        <Flex mt={8} flexDirection="column" align="center" gap={4} w="100%" maxW="400px">
+          <Button colorScheme="teal" size="lg" onClick={handleDownloadBothSides} w="100%">
+            下載履歷卡（兩面）
+          </Button>
+          <Button colorScheme="blue" size="lg" onClick={handleGenerateShortUrl} w="100%">
+            產生短網址
+          </Button>
+          {shortUrl && (
+            <Text fontSize="sm" textAlign="center" mt={2} wordBreak="break-all" color="#e3e3ff">
+              短網址：
+              <Link href={shortUrl} isExternal color="yellow.300" fontWeight="bold">
+                {shortUrl}
+              </Link>
+            </Text>
+          )}
+        </Flex>
+
+        <audio ref={audioRef} src={`${import.meta.env.BASE_URL}flip-sound.mp3`} preload="auto" />
       </Flex>
     </ChakraProvider>
   );
@@ -148,29 +278,24 @@ function CopyButton({ label, text, icon }) {
   const { hasCopied, onCopy } = useClipboard(text);
 
   return (
-    <Button
-      onClick={(e) => {
-        e.stopPropagation();
-        onCopy();
-        alert(`已複製：${text}`);
-      }}
-      bg="#5667c9"
-      _hover={{ bg: "#4559b3" }}
-      _active={{ bg: "#3f4f9c" }}
-      borderRadius="10px"
-      fontSize="18px"
-      fontWeight="700"
-      textAlign="left"
-      p="14px 20px"
-      whiteSpace="normal"
-      wordBreak="break-word"
-    >
-      <Box as="span" mr={2}>
-        {icon}
-      </Box>
-      {text}
-      <VisuallyHidden>{hasCopied ? "已複製" : "未複製"}</VisuallyHidden>
-    </Button>
+    <Tooltip label={hasCopied ? "已複製" : `複製${label}`} closeOnClick={false} hasArrow>
+      <Button
+        onClick={(e) => {
+          e.stopPropagation();
+          onCopy();
+        }}
+        size="md"
+        variant="ghost"
+        colorScheme={hasCopied ? "green" : "whiteAlpha"}
+        fontWeight="semibold"
+        fontSize="md"
+        leftIcon={<span style={{ fontSize: "20px" }}>{icon}</span>}
+        _focus={{ boxShadow: "outline" }}
+      >
+        {text}
+        <VisuallyHidden>複製{label}</VisuallyHidden>
+      </Button>
+    </Tooltip>
   );
 }
 
@@ -179,15 +304,14 @@ function CustomLink({ href, label }) {
     <Link
       href={href}
       isExternal
-      px={4}
-      py={2}
-      borderRadius="16px"
-      fontWeight="700"
-      color="#9faeff"
-      bg="rgba(255,255,255,0.2)"
-      _hover={{ bg: "rgba(255,255,255,0.35)" }}
-      boxShadow="0 3px 8px rgba(255,255,255,0.2)"
-      onClick={(e) => e.stopPropagation()}
+      fontWeight="bold"
+      fontSize="md"
+      color="#a3aaff"
+      _hover={{ color: "#d6d6ff" }}
+      _focus={{ boxShadow: "outline" }}
+      px={2}
+      py={1}
+      borderRadius="md"
     >
       {label}
     </Link>
