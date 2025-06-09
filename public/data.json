@@ -1,10 +1,10 @@
 {
     "name": "小安",
-    "title": "軟體工程師",
-    "company": "失業",
+    "title": "打雜軟體工程師",
+    "company": "夢想科技股份有限公司",
     "phone": "0912-345-678",
-    "email": "自己猜@gmail.com",
-    "website": "https://目前沒有錢host",
-    "linkedin": "https://這是什麼東西",
-    "github": "https://github.com/a920604a/"
+    "email": "an@example.com",
+    "linkedin": "https://linkedin.com/in/example",
+    "github": "https://github.com/a920604a",
+    "website": "https://an.dev"
 }
