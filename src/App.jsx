@@ -330,9 +330,9 @@ export default function App() {
           <Button
             colorScheme="blue"
             onClick={handleDownloadBothSides}
-            aria-label="下載名片雙面圖片"
+            aria-label="下載名片"
           >
-            下載雙面圖片
+            下載名片
           </Button>
           <Button
             colorScheme="teal"
