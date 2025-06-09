@@ -49,10 +49,10 @@ export default function App() {
   const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
-    fetch("/data.json")
-      .then((res) => res.json())
-      .then(setData)
-      .catch(() => alert("讀取資料失敗"));
+    fetch(`${import.meta.env.BASE_URL}data.json`)
+    .then((res) => res.json())
+    .then(setData)
+    .catch(() => alert("讀取資料失敗"));
   }, []);
 
   if (!data)
