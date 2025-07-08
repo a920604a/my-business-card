@@ -305,10 +305,15 @@ export default function App() {
 
           <Box mt={4} display="flex" flexDirection="column" alignItems="center" gap={3}>
             <Box
+              as="button" // Chakra UI 支援使用 button 行為
+              onClick={() => window.open(data.website, "_blank")}
               p={3}
               bg="rgba(255,255,255,0.1)"
               borderRadius="md"
               boxShadow="0 0 15px rgba(102, 126, 234, 0.6)"
+              cursor="pointer"
+              _hover={{ boxShadow: "0 0 20px rgba(102, 126, 234, 0.8)", transform: "scale(1.02)" }}
+              transition="all 0.2s ease-in-out"
             >
               <QRCode
                 value={data.website}
@@ -317,10 +322,12 @@ export default function App() {
                 fgColor="#aabbff"
               />
             </Box>
+
             <Text fontSize="sm" color="#b0b6ffcc" letterSpacing="wide">
-              掃描訪問我的網站
+              掃描或點擊訪問我的網站
             </Text>
           </Box>
+
         </Box>
 
         </MotionBox>
