@@ -307,7 +307,7 @@ export default function App() {
           <Box mt={4} display="flex" flexDirection="column" alignItems="center" gap={3}>
             <Box
               as="button" // Chakra UI 支援使用 button 行為
-              onClick={() => window.open(data.website, "_blank")}
+              onClick={() => window.open("https://a920604a.github.io/my-business-card/", "_blank")}
               p={3}
               bg="rgba(255,255,255,0.1)"
               borderRadius="md"
