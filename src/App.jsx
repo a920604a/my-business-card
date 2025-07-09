@@ -299,7 +299,8 @@ export default function App() {
 
             <Flex justify="center" gap={6} mt={2}>
               <CustomLink href={data.linkedin} label="LinkedIn" />
-              <CustomLink href={data.github} label="GitHub" />
+                  <CustomLink href={data.github} label="GitHub" />
+                  <CustomLink href={data.website} label="Website" />
             </Flex>
           </Box>
 
@@ -316,11 +317,12 @@ export default function App() {
               transition="all 0.2s ease-in-out"
             >
               <QRCode
-                value={data.website}
-                size={160}
-                bgColor="transparent"
-                fgColor="#aabbff"
-              />
+              value="https://a920604a.github.io/my-business-card/"
+              size={160}
+              bgColor="transparent"
+              fgColor="#aabbff"
+            />
+
             </Box>
 
             <Text fontSize="sm" color="#b0b6ffcc" letterSpacing="wide">
@@ -347,7 +349,7 @@ export default function App() {
             aria-label="產生短網址"
           >
             產生短網址
-          </Button>
+            </Button>
           {shortUrl && (
         <>
           <InputGroup mb={4}>
